@@ -1,0 +1,21 @@
+image: busybox:latest
+
+variables:
+  JAVA_BUILD_IMAGE: registry.gitlab.com/iron-mountain1/gto/commercial-platforms/insight2.0/aiml/app-stack/aiml-slim-docker-images/jdk14:1.0.12
+
+test:
+  stage: test
+  image: ${JAVA_BUILD_IMAGE}
+  before_script:
+    - export GRADLE_USER_HOME=`pwd`/.gradle
+    - chmod +x gradlew
+  script:
+    - ./gradlew test
+  artifacts:
+    paths:
+      - build/test-results/
+      - build/reports/
+    expire_in: 1 week
+    when: always
+  rules:
+    - if: $OPERATION == "test"

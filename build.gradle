@@ -1,0 +1,92 @@
+plugins {
+    id 'java'
+    id 'jacoco'
+    id 'checkstyle'
+    id 'maven-publish'
+    id "com.github.spacialcircumstances.gradle-cucumber-reporting" version "0.1.24"
+}
+
+ext {
+    project_group = 'com.irm.insight2.aiml'
+    java_version = 14
+    junitVersion = '5.8.2'
+    cucumberVersion = '7.2.3'
+}
+if (project.hasProperty("project_version")) {
+    ext.project_version = project.property("project_version")
+} else {
+    ext.project_version = 'local'
+}
+
+version = project_version
+group = project_group
+println "Building project ${project.name} in ${projectDir} with version ${version}"
+
+repositories {
+    mavenCentral()
+}
+
+configurations {
+    compileOnly {
+        extendsFrom annotationProcessor
+    }
+}
+
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(java_version)
+    }
+}
+
+dependencies {
+    testImplementation "org.junit.jupiter:junit-jupiter-api:${junitVersion}"
+    testRuntimeOnly "org.junit.jupiter:junit-jupiter-engine:${junitVersion}"
+
+    testImplementation "io.cucumber:cucumber-java:${cucumberVersion}"
+
+    testImplementation "io.cucumber:cucumber-junit:${cucumberVersion}"
+    testImplementation "org.junit.vintage:junit-vintage-engine:${junitVersion}"
+
+    testImplementation "org.seleniumhq.selenium:selenium-java:4.1.1"
+
+    testImplementation 'org.json:json:20160810'
+    testImplementation 'io.rest-assured:rest-assured:4.5.0'
+}
+
+test {
+    environment "MDM_API_PASSWORD",  System.getenv('MDM_API_PASSWORD')
+    environment "MDM_API_USER",  System.getenv('MDM_API_USER')
+    environment "MDM_API_ENDPOINT",  System.getenv('MDM_API_ENDPOINT')
+    useJUnitPlatform()
+}
+
+check {
+    dependsOn checkstyleMain
+    dependsOn checkstyleTest
+}
+
+tasks.withType(Checkstyle) {
+    reports {
+        xml.enabled false
+        html.enabled true
+    }
+}
+
+
+task jar(type: Jar, overwrite: true) {
+    archiveClassifier = "test"
+    from sourceSets.test.output
+    from configurations.testCompileClasspath.collect { it.isDirectory() ? it : zipTree(it) }
+    manifest {
+        attributes(
+                'Main-Class': 'com.userApi.Runner.RunnerTest',
+                "Manifest-Version": "1.0"
+        )
+    }
+}
+
+cucumberReports {
+    outputDir = file('build/reports/')
+    buildId = '0'
+    reports = files('build/cucumber.json')
+}
